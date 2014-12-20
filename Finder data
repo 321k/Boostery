@@ -1,4 +1,4 @@
-companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruus','SensApex','IroFit','SYRINX Bioanalytics','Vivas.fi','Trestima','Yoogaia','RecoApp','BelleGames','Oppex','youredi','Runteq','Benji Bananas','Sfonge','Nintu','3D Online Factory','GameLayer','Ocuspecto','myDBR','Sensotrend','Wellmo','Two Men and a Dog','Traplight','Moido Games','Lainaaja','Benemen','BT Wood','Navigil','Chat Republic','Ookoohko','NOMO Jeans','Movendos','Zervant','Rival Games','Glykos Finland','MeeDoc','TribaLearning','Feelmax','Faron Pharmaceuticals','Mohinet','APE Payment','SingOn','Band on the Web','Ekofy','Tribe Studios','Safelylocked','Diktamen','gTIE','Alpakka Media','Innopinion','SportSetter','Smartly.io','Fjuul','Silvermile','Sapotech','nSense','Fourdeg','Intunex','belon.gs','Plan Brothers','Ductor','Ambro','Savroc','Fingersoft','AddSearch','Etuma','Safera','Viima','Emotion Tracker','Haltian','Ecolution','Netcycler / Swap.com','Nolla Antimicrobial','Blueprint Genetics','iRent.fi','Evondos','Froont','Treehouse','Euformatics','Laturi','360Visualizer','Citynomadi','Tespack','Lumo Water','Posterfy','Klevu','NonStop Games','NearMe Services','Next Games','9Solutions','me2we Finland','Robust North','Pocum','Happy or Not','Skyhood','Huuuge Games')
+companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruus','SensApex','IroFit','SYRINX Bioanalytics','Vivas.fi','Trestima','Yoogaia','RecoApp','BelleGames','Oppex','youredi','Runteq','Benji Bananas','Sfonge','Nintu','3D Online Factory','GameLayer','Ocuspecto','myDBR','Sensotrend','Wellmo','Two Men and a Dog','Traplight','Moido Games','Benemen','BT Wood','Navigil','Chat Republic','Ookoohko','NOMO Jeans','Movendos','Zervant','Rival Games','Glykos Finland','MeeDoc','TribaLearning','Feelmax','Faron Pharmaceuticals','Mohinet','APE Payment','SingOn','Band on the Web','Ekofy','Tribe Studios','Safelylocked','Diktamen','gTIE','Alpakka Media','Innopinion','SportSetter','Smartly.io','Fjuul','Silvermile','Sapotech','nSense','Fourdeg','Intunex','belon.gs','Plan Brothers','Ductor','Ambro','Savroc','Fingersoft','AddSearch','Etuma','Safera','Viima','Emotion Tracker','Haltian','Ecolution','Netcycler / Swap.com','Nolla Antimicrobial','Blueprint Genetics','iRent.fi','Evondos','Froont','Treehouse','Euformatics','Laturi','360Visualizer','Citynomadi','Tespack','Lumo Water','Posterfy','Klevu','NonStop Games','NearMe Services','Next Games','9Solutions','me2we Finland','Robust North','Pocum','Happy or Not','Skyhood','Huuuge Games')
 
 getBoardMembers=function(companies){
   library(XML)
@@ -35,16 +35,55 @@ getBoardMembers=function(companies){
   }
 
 #Combine lists into table
-  output=as.data.frame(matrix(0,0,2))
-  names(output)=c("Data", "Name")
+  resultsTable=as.data.frame(matrix(0,0,2))
+  names(resultsTable)=c("Data", "Name")
   for(i in 1:length(results)){
     if(is.na(results[[i]])) next()
     selection=as.data.frame(results[[i]])
     selection$Name=companies[i]
     names(selection)[1]="Data"
-    output=rbind(output, selection)
+    resultsTable=rbind(resultsTable, selection)
   }
+  
+#Fix characters and superfluous text
+  temp=gsub("\r\n", "", resultsTable[,1])
+  temp=gsub("  ", "", temp)
+  temp=gsub("\t", "", temp)
+  temp=gsub("Ã¥", "å", temp)
+  temp=gsub("Ã¤", "ä", temp)
+  temp=gsub("Ã¶", "ö", temp)
+  
+  
+  output=resultsTable
+  output[,1]=temp
+  
+#Remove all rows with these phrases
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä")
+  for(i in 1:length(phrases)) output=output[-which(grepl(phrases[i], output[,1])),]
+  
+#Remove rows that are equal to this
+  phrases=c("Regions", "Close", "")
+  for(i in 1:length(phrases)) output=output[-which(output[,1]==phrases[i]),]
+
+#Add description
+output$Description=NA
+
+#Find auditors
+identifier=str_locate_all(pattern=" ", output[,1])
+
+for(i in 1:length(identifier)){
+  if(nrow(identifier[[i]])==0) next()
+  if(identifier[[i]][1,1]==1) output$Description[i]="Auditor"
+}
+
+#Find titles
+
+titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ")
+
+for(i in 1:length(titles)){
+  output$Description[which(grepl(titles[i], output[,1]))]=titles[i]
+  output$Data=gsub(titles[i], "", output$Data)
+}
 
   return(output)
 }
-
