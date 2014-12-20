@@ -11,14 +11,16 @@ getBoardMembers=function(companies){
   results=list()
 
   for(i in 1:length(companies)){
+    print(paste("Processing company: ",  companies[i], ", ", i, "out of ", length(companies)))
     results[[i]]=NA
     searchURL=paste("http://www.google.fi/search?q=", companies[i], "+management+site:finder.fi", sep="")
+    searchURL=gsub(" ", "+", searchURL)
     xPath <- "//h3//a[@href]"
     html=getURL(searchURL)
     doc <- htmlParse(html) 
     nodes <- xpathApply(doc, xPath, xmlAttrs)
     finderURL <- sapply(nodes, function(x) x[[1]])
-    free(doc)
+
 
 #Test for error
     if(length(finderURL)==0) next()
