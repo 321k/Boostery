@@ -37,10 +37,13 @@ getBoardMembers=function(companies){
   output=as.data.frame(matrix(0,0,2))
   names(output)=c("Data", "Name")
   for(i in 1:length(results)){
-  if(is.na(results[[i]])) next()
-  selection=as.data.frame(results[[i]])
-  selection$Name=companies[i]
-  names(selection)[1]="Data"
-  output=rbind(output, selection)
+    if(is.na(results[[i]])) next()
+    selection=as.data.frame(results[[i]])
+    selection$Name=companies[i]
+    names(selection)[1]="Data"
+    output=rbind(output, selection)
+  }
+
+  return(output)
 }
 
