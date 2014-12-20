@@ -1,4 +1,7 @@
+#library(RODBC)
 companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruus','SensApex','IroFit','SYRINX Bioanalytics','Vivas.fi','Trestima','Yoogaia','RecoApp','BelleGames','Oppex','youredi','Runteq','Benji Bananas','Sfonge','Nintu','3D Online Factory','GameLayer','Ocuspecto','myDBR','Sensotrend','Wellmo','Two Men and a Dog','Traplight','Moido Games','Benemen','BT Wood','Navigil','Chat Republic','Ookoohko','NOMO Jeans','Movendos','Zervant','Rival Games','Glykos Finland','MeeDoc','TribaLearning','Feelmax','Faron Pharmaceuticals','Mohinet','APE Payment','SingOn','Band on the Web','Ekofy','Tribe Studios','Safelylocked','Diktamen','gTIE','Alpakka Media','Innopinion','SportSetter','Smartly.io','Fjuul','Silvermile','Sapotech','nSense','Fourdeg','Intunex','belon.gs','Plan Brothers','Ductor','Ambro','Savroc','Fingersoft','AddSearch','Etuma','Safera','Viima','Emotion Tracker','Haltian','Ecolution','Netcycler / Swap.com','Nolla Antimicrobial','Blueprint Genetics','iRent.fi','Evondos','Froont','Treehouse','Euformatics','Laturi','360Visualizer','Citynomadi','Tespack','Lumo Water','Posterfy','Klevu','NonStop Games','NearMe Services','Next Games','9Solutions','me2we Finland','Robust North','Pocum','Happy or Not','Skyhood','Huuuge Games')
+#gt_connector=odbcConnect("ejjohans_boostery", uid="ejjohans_boost", pwd="Greenstep!!1")
+
 
 getBoardMembers=function(companies){
   library(XML)
@@ -21,7 +24,7 @@ getBoardMembers=function(companies){
     if(length(finderURL)==0) next()
 
     temp=unlist(strsplit(finderURL, split='?q=', fixed=TRUE))
-    temp=temp[which(grepl("finder", temp))[1]]
+    temp=temp[which(grepl("management", temp))[1]]
 
 #Test for error again
     if(is.na(temp)) next()
@@ -59,11 +62,17 @@ getBoardMembers=function(companies){
   
 #Remove all rows with these phrases
   phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä")
-  for(i in 1:length(phrases)) output=output[-which(grepl(phrases[i], output[,1])),]
+  for(i in 1:length(phrases)) {
+    if(length(which(grepl(phrases[i], output[,1])))==0) next()
+    output=output[-which(grepl(phrases[i], output[,1])),]
+  }
   
 #Remove rows that are equal to this
   phrases=c("Regions", "Close", "")
-  for(i in 1:length(phrases)) output=output[-which(output[,1]==phrases[i]),]
+  for(i in 1:length(phrases)) {
+    if(length(which(output[,1]==phrases[i]))==0) next()
+    output=output[-which(output[,1]==phrases[i]),]
+  }
 
 #Add description
 output$Description=NA
