@@ -1,0 +1,46 @@
+companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruus','SensApex','IroFit','SYRINX Bioanalytics','Vivas.fi','Trestima','Yoogaia','RecoApp','BelleGames','Oppex','youredi','Runteq','Benji Bananas','Sfonge','Nintu','3D Online Factory','GameLayer','Ocuspecto','myDBR','Sensotrend','Wellmo','Two Men and a Dog','Traplight','Moido Games','Lainaaja','Benemen','BT Wood','Navigil','Chat Republic','Ookoohko','NOMO Jeans','Movendos','Zervant','Rival Games','Glykos Finland','MeeDoc','TribaLearning','Feelmax','Faron Pharmaceuticals','Mohinet','APE Payment','SingOn','Band on the Web','Ekofy','Tribe Studios','Safelylocked','Diktamen','gTIE','Alpakka Media','Innopinion','SportSetter','Smartly.io','Fjuul','Silvermile','Sapotech','nSense','Fourdeg','Intunex','belon.gs','Plan Brothers','Ductor','Ambro','Savroc','Fingersoft','AddSearch','Etuma','Safera','Viima','Emotion Tracker','Haltian','Ecolution','Netcycler / Swap.com','Nolla Antimicrobial','Blueprint Genetics','iRent.fi','Evondos','Froont','Treehouse','Euformatics','Laturi','360Visualizer','Citynomadi','Tespack','Lumo Water','Posterfy','Klevu','NonStop Games','NearMe Services','Next Games','9Solutions','me2we Finland','Robust North','Pocum','Happy or Not','Skyhood','Huuuge Games')
+
+getBoardMembers=function(companies){
+  library(XML)
+  library(stringr)
+  htmlFile="results.html"
+  results=list()
+
+  for(i in 1:length(companies)){
+    results[[i]]=NA
+    searchURL=paste("http://www.google.fi/search?q=", companies[i], "+management+site:finder.fi", sep="")
+    xPath <- "//h3//a[@href]"
+    html=getURL(searchURL)
+    doc <- htmlParse(html) 
+    nodes <- xpathApply(doc, xPath, xmlAttrs)
+    finderURL <- sapply(nodes, function(x) x[[1]])
+    free(doc)
+
+#Test for error
+    if(length(finderURL)==0) next()
+
+    temp=unlist(strsplit(finderURL, split='?q=', fixed=TRUE))
+    temp=temp[which(grepl("finder", temp))[1]]
+
+#Test for error again
+    if(is.na(temp)) next()
+  
+    finalURL<- unlist(strsplit(temp, split='?q=', fixed=TRUE))
+    download.file(finalURL, htmlFile)
+    html=htmlTreeParse(htmlFile, useInternal=T)
+    xPath="//p"
+
+    results[[i]]=unlist(xpathApply(html, xPath, xmlValue))
+  }
+
+#Combine lists into table
+  output=as.data.frame(matrix(0,0,2))
+  names(output)=c("Data", "Name")
+  for(i in 1:length(results)){
+  if(is.na(results[[i]])) next()
+  selection=as.data.frame(results[[i]])
+  selection$Name=companies[i]
+  names(selection)[1]="Data"
+  output=rbind(output, selection)
+}
+
