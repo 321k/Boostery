@@ -1,6 +1,12 @@
+#This function uses the normal Google search engine to find the link to the correct finder page.
+#This is limited to a few hundred results at a time
+#Please use the updated function to access results through google's rest API
+
+
 #library(RODBC)
-companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruus','SensApex','IroFit','SYRINX Bioanalytics','Vivas.fi','Trestima','Yoogaia','RecoApp','BelleGames','Oppex','youredi','Runteq','Benji Bananas','Sfonge','Nintu','3D Online Factory','GameLayer','Ocuspecto','myDBR','Sensotrend','Wellmo','Two Men and a Dog','Traplight','Moido Games','Benemen','BT Wood','Navigil','Chat Republic','Ookoohko','NOMO Jeans','Movendos','Zervant','Rival Games','Glykos Finland','MeeDoc','TribaLearning','Feelmax','Faron Pharmaceuticals','Mohinet','APE Payment','SingOn','Band on the Web','Ekofy','Tribe Studios','Safelylocked','Diktamen','gTIE','Alpakka Media','Innopinion','SportSetter','Smartly.io','Fjuul','Silvermile','Sapotech','nSense','Fourdeg','Intunex','belon.gs','Plan Brothers','Ductor','Ambro','Savroc','Fingersoft','AddSearch','Etuma','Safera','Viima','Emotion Tracker','Haltian','Ecolution','Netcycler / Swap.com','Nolla Antimicrobial','Blueprint Genetics','iRent.fi','Evondos','Froont','Treehouse','Euformatics','Laturi','360Visualizer','Citynomadi','Tespack','Lumo Water','Posterfy','Klevu','NonStop Games','NearMe Services','Next Games','9Solutions','me2we Finland','Robust North','Pocum','Happy or Not','Skyhood','Huuuge Games')
+#companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruus','SensApex','IroFit','SYRINX Bioanalytics','Vivas.fi','Trestima','Yoogaia','RecoApp','BelleGames','Oppex','youredi','Runteq','Benji Bananas','Sfonge','Nintu','3D Online Factory','GameLayer','Ocuspecto','myDBR','Sensotrend','Wellmo','Two Men and a Dog','Traplight','Moido Games','Benemen','BT Wood','Navigil','Chat Republic','Ookoohko','NOMO Jeans','Movendos','Zervant','Rival Games','Glykos Finland','MeeDoc','TribaLearning','Feelmax','Faron Pharmaceuticals','Mohinet','APE Payment','SingOn','Band on the Web','Ekofy','Tribe Studios','Safelylocked','Diktamen','gTIE','Alpakka Media','Innopinion','SportSetter','Smartly.io','Fjuul','Silvermile','Sapotech','nSense','Fourdeg','Intunex','belon.gs','Plan Brothers','Ductor','Ambro','Savroc','Fingersoft','AddSearch','Etuma','Safera','Viima','Emotion Tracker','Haltian','Ecolution','Netcycler / Swap.com','Nolla Antimicrobial','Blueprint Genetics','iRent.fi','Evondos','Froont','Treehouse','Euformatics','Laturi','360Visualizer','Citynomadi','Tespack','Lumo Water','Posterfy','Klevu','NonStop Games','NearMe Services','Next Games','9Solutions','me2we Finland','Robust North','Pocum','Happy or Not','Skyhood','Huuuge Games')
 #gt_connector=odbcConnect("ejjohans_boostery", uid="ejjohans_boost", pwd="Greenstep!!1")
+
 
 
 getBoardMembers=function(companies){
@@ -11,9 +17,12 @@ getBoardMembers=function(companies){
   results=list()
 
   for(i in 1:length(companies)){
+    Sys.sleep(1)
     print(paste("Processing company: ",  companies[i], ", ", i, "out of ", length(companies)))
     results[[i]]=NA
-    searchURL=paste("http://www.google.fi/search?q=", companies[i], "+management+site:finder.fi", sep="")
+    
+    searchEngineURL="http://www.google.fi/search?q="
+    searchURL=paste(searchEngineURL, companies[i], "+management+site:finder.fi", sep="")
     searchURL=gsub(" ", "+", searchURL)
     xPath <- "//h3//a[@href]"
     html=getURL(searchURL)
