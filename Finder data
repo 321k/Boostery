@@ -3,6 +3,7 @@ companies=c('Videoly','Casambi Technologies','Kliento','Oikian Solutions','Ceruu
 getBoardMembers=function(companies){
   library(XML)
   library(stringr)
+  library(RCurl)
   htmlFile="results.html"
   results=list()
 
