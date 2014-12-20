@@ -107,3 +107,30 @@ for(i in 1:length(titles)){
 
   return(output)
 }
+
+
+#Run the function
+
+companies=read.csv("C:/Users/erik.johansson/Downloads/companies(1).csv", header=F, stringsAsFactors=F)
+
+temp=companies[,1]
+temp=gsub("Ã¥", "å", temp)
+  
+temp=gsub("Ã„", "ä", temp)
+temp=gsub("Ã¤", "ä", temp)
+temp=gsub("Ã¶", "ö", temp)
+temp=gsub("Ã–", "ö", temp)
+temp=gsub("Ã©", "é", temp)
+temp=gsub("Ã¶", "ö", temp)
+temp=gsub("Ã¶", "Ö", temp)
+temp=gsub("Ã…", "Å", temp)
+temp=gsub("Ã–", "Ö", temp)
+temp=gsub("Ã„", "Ä", temp)
+
+temp=gsub(" oy", "", temp, ignore.case=T)
+temp=gsub(" ab", "", temp, ignore.case=T)
+temp=gsub(" ky", "", temp, ignore.case=T)
+temp=gsub(" t:mi", "", temp, ignore.case=T)
+
+selection=sample(temp, 10)
+results=getBoardMembers(selection)
