@@ -1,0 +1,106 @@
+#Use Google's API to access the finder link for board members
+#Instructions here: 
+#developer console: https://console.developers.google.com/project/valiant-circuit-800/apiui/credential
+#Example: https://www.googleapis.com/customsearch/v1?key=AIzaSyCFJtYCQ--vP6UfJpADoWXI_hxtrFb_0qI&cx=015081309770281970318:cseumgsm9ay&q=jolla+p%C3%A4%C3%A4t%C3%A4j%C3%A4t
+#Custom search instructions: https://developers.google.com/custom-search/json-api/v1/overview
+#Instructions for using REST: https://developers.google.com/custom-search/json-api/v1/using_rest
+
+getBoardMembers=function(companies){
+  library(XML)
+  library(stringr)
+  library(RCurl)
+  htmlFile="results.html"
+  results=list()
+
+  for(i in 1:length(companies)){
+    print(paste("Processing company: ",  companies[i], ", ", i, "out of ", length(companies)))
+    results[[i]]=NA
+    
+    searchEngineURL="https://www.googleapis.com/customsearch/v1?"
+    key="AIzaSyCFJtYCQ--vP6UfJpADoWXI_hxtrFb_0qI"
+    cx="015081309770281970318:cseumgsm9ay"
+    query=paste(companies[i], "management")
+    searchURL=paste(searchEngineURL, "key=", key, "&cx=", cx, "&q=", query, sep="")
+    searchURL=gsub(" ", "+", searchURL)
+    json=getURL(searchURL, ssl.verifypeer=F)
+    doc <- fromJSON(json)
+    nodes <- xpathApply(doc, xPath, xmlAttrs)
+    finderURL <- sapply(nodes, function(x) x[[1]])
+
+
+#Test for error
+    if(length(finderURL)==0) next()
+
+    temp=unlist(strsplit(finderURL, split='?q=', fixed=TRUE))
+    temp=temp[which(grepl("management", temp))[1]]
+
+#Test for error again
+    if(is.na(temp)) next()
+  
+    finalURL<- unlist(strsplit(temp, split='?q=', fixed=TRUE))
+    download.file(finalURL, htmlFile)
+    html=htmlTreeParse(htmlFile, useInternal=T)
+    xPath="//p"
+
+    results[[i]]=unlist(xpathApply(html, xPath, xmlValue))
+  }
+
+#Combine lists into table
+  resultsTable=as.data.frame(matrix(0,0,2))
+  names(resultsTable)=c("Data", "Name")
+  for(i in 1:length(results)){
+    if(is.na(results[[i]])) next()
+    selection=as.data.frame(results[[i]])
+    selection$Name=companies[i]
+    names(selection)[1]="Data"
+    resultsTable=rbind(resultsTable, selection)
+  }
+  
+#Fix characters and superfluous text
+  temp=gsub("\r\n", "", resultsTable[,1])
+  temp=gsub("  ", "", temp)
+  temp=gsub("\t", "", temp)
+  temp=gsub("Ã¥", "å", temp)
+  temp=gsub("Ã¤", "ä", temp)
+  temp=gsub("Ã¶", "ö", temp)
+  
+  
+  output=resultsTable
+  output[,1]=temp
+  
+#Remove all rows with these phrases
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä")
+  for(i in 1:length(phrases)) {
+    if(length(which(grepl(phrases[i], output[,1])))==0) next()
+    output=output[-which(grepl(phrases[i], output[,1])),]
+  }
+  
+#Remove rows that are equal to this
+  phrases=c("Regions", "Close", "")
+  for(i in 1:length(phrases)) {
+    if(length(which(output[,1]==phrases[i]))==0) next()
+    output=output[-which(output[,1]==phrases[i]),]
+  }
+
+#Add description
+output$Description=NA
+
+#Find auditors
+identifier=str_locate_all(pattern=" ", output[,1])
+
+for(i in 1:length(identifier)){
+  if(nrow(identifier[[i]])==0) next()
+  if(identifier[[i]][1,1]==1) output$Description[i]="Auditor"
+}
+
+#Find titles
+
+titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ")
+
+for(i in 1:length(titles)){
+  output$Description[which(grepl(titles[i], output[,1]))]=titles[i]
+  output$Data=gsub(titles[i], "", output$Data)
+}
+
+  return(output)
+}
