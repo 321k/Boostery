@@ -1,0 +1,141 @@
+getFinderURL=function(company, source="search"){
+#Source can be search or api
+  library(XML)
+  library(stringr)
+  library(RCurl)
+  
+  if(source=="search"){
+  searchEngineURL="http://www.google.fi/search?q="
+  searchURL=paste(searchEngineURL, company, "+management+site:finder.fi", sep="")
+  searchURL=gsub(" ", "+", searchURL)
+  xPath <- "//h3//a[@href]"
+  html=getURL(searchURL)
+    doc <- htmlParse(html)
+    nodes <- xpathApply(doc, xPath, xmlAttrs)
+    URL <- sapply(nodes, function(x) x[[1]])
+
+#Error test
+    if(length(URL)==0) return(NA)
+
+    temp=unlist(strsplit(URL, split='?q=', fixed=TRUE))
+    temp=temp[which(grepl("management", temp))[1]]
+
+#Error test
+    if(is.na(temp)) return(NA)
+
+    finalURL<- unlist(strsplit(temp, split='?q=', fixed=TRUE))
+  } else
+  {
+    searchEngineURL="https://www.googleapis.com/customsearch/v1?"
+    key="AIzaSyCFJtYCQ--vP6UfJpADoWXI_hxtrFb_0qI"
+    cx="015081309770281970318:cseumgsm9ay"
+    query=paste(company, "vastuuhenkilot")
+    searchURL=paste(searchEngineURL, "key=", key, "&cx=", cx, "&q=", query, sep="")
+    searchURL=gsub(" ", "+", searchURL)
+    json=getURL(searchURL, ssl.verifypeer=F)
+    doc=fromJSON(json)
+    
+#Error test
+    if(names(doc)=="error") return("usage limit exceeded")
+    if(doc$queries$request[[1]]$totalResults==0) return(NA)
+    
+    searchResults=which(names(doc)=="items")
+
+#Error test
+    if(length(searchResults)==0) return(NA)
+    
+    for(j in 1:length(doc[[6]])) link[j]=doc[[searchResults]][[j]]$link
+    link=link[which(grepl("paattajat", link))]
+    link=link[which(grepl(company, link))]
+    finalURL=link[1]
+  }
+  names(finalURL)=company
+  return(finalURL)
+}
+
+getBoardMembers=function(url){
+
+#Check for missing data
+  if(is.na(url)) return(NA)
+  
+  library(XML)
+  library(stringr)
+  library(RCurl)
+
+  htmlFile=tempfile()
+  
+  download.file(url, htmlFile)
+  html=htmlTreeParse(htmlFile, useInternal=T)
+  xPath="//p"
+  rawData=unlist(xpathApply(html, xPath, xmlValue))
+  resultsTable=as.data.frame(rawData)
+  resultsTable[2]=names(url)
+  resultsTable[,1]=as.character(resultsTable[,1])
+  names(resultsTable)=c("Data", "Name")
+  
+  
+  for(i in 1:nrow(resultsTable)){
+    temp=gsub("\r\n", "", resultsTable[i,1])
+    temp=gsub("  ", "", temp)
+    temp=gsub("\t", "", temp)
+    temp=gsub("Ã¥", "å", temp)
+    temp=gsub("Ã¤", "ä", temp)
+    temp=gsub("Ã¶", "ö", temp)
+    resultsTable[i,1]=temp
+  }
+
+#Remove all rows with these phrases
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä")
+  for(i in 1:length(phrases)) {
+    if(length(which(grepl(phrases[i], resultsTable$Data)))==0) next()
+    resultsTable=resultsTable[-which(grepl(phrases[i], resultsTable$Data)),]
+  }
+
+#Remove rows that are equal to this
+  phrases=c("Regions", "Close", "")
+  for(i in 1:length(phrases)) {
+    if(length(which(resultsTable[,1]==phrases[i]))==0) next()
+    resultsTable=resultsTable[-which(resultsTable[,1]==phrases[i]),]
+  }
+
+#Add description
+  resultsTable$Description=NA
+
+#Find auditors
+  identifier=str_locate_all(pattern=" ", resultsTable[,1])
+  for(i in 1:length(identifier)){
+    if(nrow(identifier[[i]])==0) next()
+    if(identifier[[i]][1,1]==1) resultsTable$Description[i]="Auditor"
+  }
+  
+#Find titles
+  titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ", "apteekkari ", "head of software development ")
+  for(i in 1:length(titles)){
+    resultsTable$Description[which(grepl(titles[i], resultsTable[,1]))]=titles[i]
+    resultsTable$Data=gsub(titles[i], "", resultsTable$Data)
+  }
+
+  return(resultsTable)
+}
+
+###Run it
+#Get URL.s
+selection=c("Jolla", "Greenstep")
+for(i in 1:length(selection)){
+  url[i]=getFinderURL(selection[i])
+}
+
+#Get data
+results=list()
+for(i in 1:length(url)){
+  results[[i]]=getBoardMembers(url[i])
+}
+
+#Convert to table
+table=as.data.frame(matrix(0,0,2))
+names(table)=c("Data", "Name")
+for(i in 1:length(results)){
+  table=rbind(table, results[[i]])
+}
+
+
