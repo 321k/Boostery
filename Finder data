@@ -98,7 +98,7 @@ for(i in 1:length(identifier)){
 
 #Find titles
 
-titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ")
+titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ", "apteekkari ")
 
 for(i in 1:length(titles)){
   output$Description[which(grepl(titles[i], output[,1]))]=titles[i]
