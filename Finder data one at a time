@@ -87,7 +87,7 @@ getBoardMembers=function(url){
   }
 
 #Remove all rows with these phrases
-  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä")
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä", "Company description")
   for(i in 1:length(phrases)) {
     if(length(which(grepl(phrases[i], resultsTable$Data)))==0) next()
     resultsTable=resultsTable[-which(grepl(phrases[i], resultsTable$Data)),]
@@ -125,7 +125,7 @@ getBoardMembers=function(url){
 url=as.data.frame(matrix(0,0,2), stringsAsFactors=F)
 names(url)=c("URL", "Name")
 
-selection=c("Jolla", "Greenstep", "Kiosked")
+#selection=c("Jolla", "Greenstep", "Kiosked")
 for(i in 1:length(selection)){
   url=rbind(url, getFinderURL(selection[i]))
 }
