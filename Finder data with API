@@ -4,6 +4,7 @@
 #Example: https://www.googleapis.com/customsearch/v1?key=AIzaSyCFJtYCQ--vP6UfJpADoWXI_hxtrFb_0qI&cx=015081309770281970318:cseumgsm9ay&q=jolla+p%C3%A4%C3%A4t%C3%A4j%C3%A4t
 #Custom search instructions: https://developers.google.com/custom-search/json-api/v1/overview
 #Instructions for using REST: https://developers.google.com/custom-search/json-api/v1/using_rest
+Search engine url: https://www.google.com/cse/publicurl?cx=015081309770281970318:cseumgsm9ay
 
 getBoardMembers=function(companies){
 library(XML)
@@ -25,7 +26,10 @@ for(i in 1:length(companies)){
 	searchURL=gsub(" ", "+", searchURL)
 	json=getURL(searchURL, ssl.verifypeer=F)
 	doc=fromJSON(json)
-	for(j in 1:length(doc[[6]])) link[j]=doc[[6]][[j]]$link
+	if(doc$queries$request[[1]]$totalResults==0) next()
+	searchResults=which(names(doc)=="items")
+	if(length(searchResults)==0) next()
+	for(j in 1:length(doc[[6]])) link[j]=doc[[searchResults]][[j]]$link
 	link=link[which(grepl("paattajat", link))]
 	link=link[which(grepl(companies[i], link))]
 
@@ -112,3 +116,24 @@ output$Data=gsub(titles[i], "", output$Data)
 
 return(output)
 }
+
+
+companies=read.csv("C:/Users/erik.johansson/Downloads/companies.csv", header=F, stringsAsFactors=F)
+temp=companies[,1]
+temp=gsub("Ã¥", "å", temp)
+temp=gsub("Ã„", "ä", temp)
+temp=gsub("Ã¤", "ä", temp)
+temp=gsub("Ã¶", "ö", temp)
+temp=gsub("Ã–", "ö", temp)
+temp=gsub("Ã©", "é", temp)
+temp=gsub("Ã¶", "ö", temp)
+temp=gsub("Ã¶", "Ö", temp)
+temp=gsub("Ã…", "Å", temp)
+temp=gsub("Ã–", "Ö", temp)
+temp=gsub("Ã„", "Ä", temp)
+temp=gsub(" oy", "", temp, ignore.case=T)
+temp=gsub(" ab", "", temp, ignore.case=T)
+temp=gsub(" ky", "", temp, ignore.case=T)
+temp=gsub(" t:mi", "", temp, ignore.case=T)
+selection=sample(temp, 100)
+results=getBoardMembers(selection)
