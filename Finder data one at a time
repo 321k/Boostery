@@ -49,8 +49,10 @@ getFinderURL=function(company, source="search"){
     link=link[which(grepl(company, link))]
     finalURL=link[1]
   }
-  names(finalURL)=company
-  return(finalURL)
+  output=as.data.frame(finalURL, stringsAsFactors=F)
+  output[,2]=company
+  names(output)=c("URL", "Name")
+  return(output)
 }
 
 getBoardMembers=function(url){
@@ -64,12 +66,12 @@ getBoardMembers=function(url){
 
   htmlFile=tempfile()
   
-  download.file(url, htmlFile)
+  download.file(as.character(url[1,1]), htmlFile)
   html=htmlTreeParse(htmlFile, useInternal=T)
   xPath="//p"
   rawData=unlist(xpathApply(html, xPath, xmlValue))
   resultsTable=as.data.frame(rawData)
-  resultsTable[2]=names(url)
+  resultsTable[2]=url[1,2]
   resultsTable[,1]=as.character(resultsTable[,1])
   names(resultsTable)=c("Data", "Name")
   
@@ -109,7 +111,7 @@ getBoardMembers=function(url){
   }
   
 #Find titles
-  titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ", "apteekkari ", "head of software development ")
+  titles=c("CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ", "apteekkari ", "head of software development ", "viestintäjohtaja ", "talousjohtaja ")
   for(i in 1:length(titles)){
     resultsTable$Description[which(grepl(titles[i], resultsTable[,1]))]=titles[i]
     resultsTable$Data=gsub(titles[i], "", resultsTable$Data)
@@ -119,16 +121,19 @@ getBoardMembers=function(url){
 }
 
 ###Run it
-#Get URL.s
-selection=c("Jolla", "Greenstep")
+#Get URL:s
+url=as.data.frame(matrix(0,0,2), stringsAsFactors=F)
+names(url)=c("URL", "Name")
+
+selection=c("Jolla", "Greenstep", "Kiosked")
 for(i in 1:length(selection)){
-  url[i]=getFinderURL(selection[i])
+  url=rbind(url, getFinderURL(selection[i]))
 }
 
 #Get data
 results=list()
-for(i in 1:length(url)){
-  results[[i]]=getBoardMembers(url[i])
+for(i in 1:nrow(url)){
+  results[[i]]=getBoardMembers(url[i,])
 }
 
 #Convert to table
