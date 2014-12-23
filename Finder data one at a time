@@ -87,7 +87,7 @@ getBoardMembers=function(url){
   }
 
 #Remove all rows with these phrases
-  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä", "Company description")
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä", "Company description","Kaupparekisteri", "Tilastokeskus", "Tuotekehitystä)
   for(i in 1:length(phrases)) {
     if(length(which(grepl(phrases[i], resultsTable$Data)))==0) next()
     resultsTable=resultsTable[-which(grepl(phrases[i], resultsTable$Data)),]
