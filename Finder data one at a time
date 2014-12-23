@@ -127,7 +127,12 @@ names(url)=c("URL", "Name")
 
 #selection=c("Jolla", "Greenstep", "Kiosked")
 for(i in 1:length(selection)){
-  url=rbind(url, getFinderURL(selection[i]))
+  finderURL=getFinderURL(selection[i])
+  if(is.na(finderURL)) {
+    finderURL=as.data.frame(matrix(NA, 1, 2))
+    names(finderURL)=c("URL", "Name")
+  }
+  url=rbind(url, finderURL)
 }
 
 #Get data
