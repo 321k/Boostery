@@ -3,6 +3,7 @@ getFinderURL=function(company, source="search"){
   library(XML)
   library(stringr)
   library(RCurl)
+  library(rjson)
   
   if(source=="search"){
   searchEngineURL="http://www.google.fi/search?q="
@@ -63,6 +64,7 @@ getBoardMembers=function(url){
   library(XML)
   library(stringr)
   library(RCurl)
+  library(rjson)
 
   htmlFile=tempfile()
   
@@ -83,11 +85,13 @@ getBoardMembers=function(url){
     temp=gsub("Ã¥", "å", temp)
     temp=gsub("Ã¤", "ä", temp)
     temp=gsub("Ã¶", "ö", temp)
+    temp=gsub("Ã–", "Ö", temp)
+    temp=gsub("Ã©", "é", temp)
     resultsTable[i,1]=temp
   }
 
 #Remove all rows with these phrases
-  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä", "Company description","Kaupparekisteri", "Tilastokeskus", "Tuotekehitystä)
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä", "Company description","Kaupparekisteri", "Tilastokeskus", "Tuotekehitystä", "Business description")
   for(i in 1:length(phrases)) {
     if(length(which(grepl(phrases[i], resultsTable$Data)))==0) next()
     resultsTable=resultsTable[-which(grepl(phrases[i], resultsTable$Data)),]
@@ -138,7 +142,10 @@ for(i in 1:length(selection)){
 #Get data
 results=list()
 for(i in 1:nrow(url)){
-  results[[i]]=getBoardMembers(url[i,])
+  results[[i]]=NA
+  tryCatch({
+    results[[i]]=getBoardMembers(url[i,])
+  }, error=function(e){cat("ERROR :", conditionMessage(e), "\n")})
 }
 
 #Convert to table
