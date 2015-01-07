@@ -1,0 +1,124 @@
+library(XML)
+library(stringr)
+library(RCurl)
+library(rjson)
+
+getFinderURL=function(name="kiosked oy"){
+
+baseURL="http://finder.fi/yrityshaku/"
+searchURL=paste(baseURL, name, sep="")
+searchURL=gsub(" ", "%20", searchURL)
+htmlFile=tempfile()
+download.file(searchURL, htmlFile)
+doc=htmlTreeParse(htmlFile, useInternal=T)
+xPath = "//a[@href]"
+rawData = unlist(xpathApply(doc, xPath, xmlAttrs))
+rawData=rawData[which(grepl("yhteystiedot", rawData))]
+
+temp=rawData
+temp=gsub("\r\n", "", temp)
+temp=gsub("  ", "", temp)
+temp=gsub("\t", "", temp)
+temp=gsub("Ã¥", "å", temp)
+temp=gsub("Ã¤", "ä", temp)
+temp=gsub("Ã„", "Ä", temp)
+temp=gsub("Ã¶", "ö", temp)
+temp=gsub("Ã–", "Ö", temp)
+temp=gsub("Ã©", "é", temp)
+
+
+temp=gsub("yhteystiedot", "paattajat", temp)
+rawData=temp
+
+URL=paste("http://finder.fi", rawData, sep="")
+return(URL)
+}
+
+
+
+listed_companies=as.character(read.csv("C:/Users/erik.johansson/Dropbox/Boostery shared/Finnish listed companies.csv", sep=";")[,1])
+
+url=vector()
+for(i in 1:length(listed_companies)){
+  url[i]=getFinderURL(listed_companies[i])
+}
+url_table=as.data.frame(url)
+url_table[2]=listed_companies
+url_table[,1]=as.character(url_table[,1])
+url_table=url_table[-which(nchar(url_table[,1])<18),]
+
+url_table[,1]=gsub(" ", "%20", url_table[,1])
+#Get data
+results=list()
+for(i in 1:nrow(url_table)){
+  results[[i]]=NA
+  tryCatch({
+    results[[i]]=getBoardMembers(url_table[i,])
+  }, error=function(e){cat("ERROR :", conditionMessage(e), "\n")})
+}
+
+#Convert to table
+table=as.data.frame(matrix(0,0,2))
+names(table)=c("Data", "Name")
+for(i in 1:length(results)){
+  table=rbind(table, results[[i]])
+}
+
+
+################
+for(j in 1:length(results)){
+	resultsTable=results[[j]]
+
+ for(i in 1:nrow(resultsTable)){
+    temp=gsub("\r\n", "", resultsTable[i,1])
+    temp=gsub("  ", "", temp)
+    temp=gsub("\t", "", temp)
+    temp=gsub("Ã¥", "å", temp)
+    temp=gsub("Ã…", "Å", temp)
+    temp=gsub("Ã„", "Å", temp)   
+    temp=gsub("Ã¤", "ä", temp)
+    temp=gsub("Ã¶", "ö", temp)
+    temp=gsub("Ã–", "Ö", temp)
+    temp=gsub("Ã©", "é", temp)
+    temp=gsub("Ã¼", "ü", temp)    
+    temp=gsub("Ã¸", "ø", temp) 
+    temp=gsub("Ã¦", "æ", temp)
+    
+    
+    resultsTable[i,1]=temp
+  }
+
+#Remove all rows with these phrases
+  phrases=c("Fonecta", "Hallituksen", "hallituksen", "Yhteen viestiin mahtuu yhteensä 480 merkkiä", "Company description","Kaupparekisteri", "Tilastokeskus", "Tuotekehitystä", "Business description", "Toiminnankuvaus", "Yrityskuvaus", "Toiminnankuvaus", "Aluerajaus")
+  for(i in 1:length(phrases)) {
+    if(length(which(grepl(phrases[i], resultsTable$Data)))==0) next()
+    resultsTable=resultsTable[-which(grepl(phrases[i], resultsTable$Data)),]
+  }
+
+#Remove rows that are equal to this
+  phrases=c("Regions", "Close", "", "Aluerajaus", "Sulje")
+  for(i in 1:length(phrases)) {
+    if(length(which(resultsTable[,1]==phrases[i]))==0) next()
+    resultsTable=resultsTable[-which(resultsTable[,1]==phrases[i]),]
+  }
+
+#Add description
+  resultsTable$Description=NA
+
+#Find auditors
+  identifier=str_locate_all(pattern=" ", resultsTable[,1])
+  for(i in 1:length(identifier)){
+    if(nrow(identifier[[i]])==0) next()
+    if(identifier[[i]][1,1]==1) resultsTable$Description[i]="Auditor"
+  }
+  
+#Find titles
+  titles=c("vice president, it development ", "head of cits ", "director service and maintenance ", "johtaja yritysturvallisuus ", "head of operations support ", "vice president post sales office ", "myyntikanavajohtaja ", "vice president finance ", "vice president financial communications ", "johtaja, yhteiskuntasuhteet ", "Head of Sales and Pricing Process development ","VP mergers &amp; acquisitions ", "VP hr ", "VP, people &amp; organizational development ","SVP business controller ", "Director, Customer Interactions ", "marketing communications director ", "VP logistics ", "business applications director ","IT projects director ", "global communications director ", "head of investor relations ", "toimitusketjujohtaja ", "CEO ", "asiakkuusjohtaja ", "toimitusjohtaja ", "COO ", "operatiivinen johtaja ", "liikkeenharjoittaja ", "markkinointijohtaja ", "myyntijohtaja ", "apteekkari ", "head of software development ", "viestintäjohtaja ", "talousjohtaja ", "henkilöstöjohtaja ", "viestintä- ja sijoittajasuhdejohtaja ", "henkilöstöjohtaja ", "marketing and operations manager ", "senior vice president ", "tuotantojohtaja senior vice president ", "innovaatiojohtaja ", "sales director ", "CFO ", "head of supply chain management", "marketing director ", "finanssijohtaja   ", "chief financial officer ", "materiaali- ja logistiikkajohtaja ", "sijoitus- ja ", "tuotantojohtaja ", "viestintä- ja yhteiskuntavastuujohtaja ", "tuotanto- ", "vara", "johtaja, henkilöstö ", "markkinointi- ja kehitysjohtaja ", "viestintä- ja ", "talous- ja kehitysjohtaja ", "toimitusjohtajan varamies "," tehtaanjohtaja ", "CIO ", "maajohtaja ", "markkinointi- ja ", "talous- ja hallintojohtaja ", "myynti- ja ", "tietohallintojohtaja ", "tulosyksikönjohtaja ", "viestintä-, markkinointi- ja yhteiskuntasuhdejohtaja ", "myynti- ja logistiikkajohtaja ", "hallintojohtaja ","kaivoksenjohtaja ", "vice president, sales and marketing ", "hr johtaja ", "COM ", "it-johtaja ", "myynti- ja asiakaspalvelujohtaja ", "IT director ", "senior partner ", "sales and ", "head of sales and marketing ", "tietoliikennevastaava ", "IT-johtaja ", "tax free päällikkö ", "communications director ", "brändijohtaja ", "talous- ja rahoitusjohtaja ", "tuotanto- ja logistiikkajohtaja ", "vice president, IT ", "vice president, HR ", "head of ict and customer services ", "business service director ", "director, business controlling ", "director, accounting ", "vice president supply chain ", "senior vice president, supply chain &amp; hseq ", "marketing communication director ", "ICT director ", "brand director ", "group vice president finance&amp;accounting ", "huoltopalvelujohtaja ", "hallinto- ja lakiasiainjohtaja ", "regional director ", "head of operator partner success ", "vice president, nordics ", "head of group marketing sales and customer service ", "head of passenger services ", "apulaisjohtaja ", "markkinointi", "director customer loyalty ", "markkinointi- ja ", "senior vice president, automation services ", "vice president, products ", "director, AS customer support ", "senior vice president, customer support ", "vice president, marketing communications ", "vice president, enterprise marketing ", "senior vice president, volume sales ", "sales executive ", "global sales ", "senior vice president, hr &amp; development ", "senior vice president, Scandinavia ", "henkilöstö- ja yritysvastuujohtaja ", "vice president compensation and benefits ", "sales director, emea ", "alue", "vice president, is ", "Toimitusjohtaja yksin ", "sijoittajasuhdejohtaja ", "johtaja, toimitusketjun suunnittelu ", "head of supply chain solutions ", "turvallisuusjohtaja ", "yrityskauppajohtaja ", "sales development director ", "director sales operations ", "director sales ", "vice president HR ", "head of marketing and communications ", "hr director ", "director ", "vice president ", "kaupallinen johtaja ", "yrityssuunnittelu- ja sijoittajasuhdejohtaja ", "vice president, finance and group controller ", "vice president group hr services Tuula ", "viestintä-, markkinointi- ja yhteiskuntasuhdejohtaja", "head of ict operations ", "viestintä- ja yritysvastuujohtaja ", "director of ICT sourcing ", "logistiikkajohtaja ", " hallintojohtaja ", "head of it ", "johtaja ", "director ", "ict ", "VP sales",  "corporate controller ", "CRM program ", "senior manager ")
+  for(i in 1:length(titles)){
+    resultsTable$Description[which(grepl(titles[i], resultsTable[,1]))]=titles[i]
+    resultsTable$Data=gsub(titles[i], "", resultsTable$Data)
+  }
+
+results[[j]]=resultsTable
+}
+
